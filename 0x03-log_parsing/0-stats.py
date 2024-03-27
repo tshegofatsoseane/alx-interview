@@ -1,53 +1,39 @@
 #!/usr/bin/python3
 """
-log parsing
+Log parsing
 """
 
 import sys
-import re
 
+if __name__ == '__main__':
 
-def output(log: dict) -> None:
-    """
-    helper function to display stats
-    """
-    print("File size: {}".format(log["file_size"]))
-    for code in sorted(log["code_frequency"]):
-        if log["code_frequency"][code]:
-            print("{}: {}".format(code, log["code_frequency"][code]))
+    filesize, count = 0, 0
+    codes = ["200", "301", "400", "401", "403", "404", "405", "500"]
+    stats = {k: 0 for k in codes}
 
-
-if __name__ == "__main__":
-    regex = re.compile(
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} - \[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\] "[A-Z]+ ([^"]+)" (\d+) (\d+)'
-    )
-
-    line_count = 0
-    log = {}
-    log["file_size"] = 0
-    log["code_frequency"] = {}
+    def print_stats(stats: dict, file_size: int) -> None:
+        print("File size: {:d}".format(filesize))
+        for k, v in sorted(stats.items()):
+            if v:
+                print("{}: {}".format(k, v))
 
     try:
         for line in sys.stdin:
-            line = line.strip()
-            match = regex.match(line)
-            if match:
-                line_count += 1
-                method = match.group(2)
-                status_code = match.group(3)
-                file_size = int(match.group(4))
-
-                # File size
-                log["file_size"] += file_size
-
-                # Status code
-                log["code_frequency"].setdefault(status_code, 0)
-                log["code_frequency"][status_code] += 1
-
-                if line_count % 10 == 0:
-                    output(log)
+            count += 1
+            data = line.split()
+            try:
+                status_code = data[-2]
+                if status_code in stats:
+                    stats[status_code] += 1
+            except BaseException:
+                pass
+            try:
+                filesize += int(data[-1])
+            except BaseException:
+                pass
+            if count % 10 == 0:
+                print_stats(stats, filesize)
+        print_stats(stats, filesize)
     except KeyboardInterrupt:
-        pass  # Allow graceful exit if interrupted
-    finally:
-        output(log)
-
+        print_stats(stats, filesize)
+        raise
